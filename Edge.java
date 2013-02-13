@@ -39,14 +39,21 @@ class Edge implements Comparable {
 
 	public boolean equals(Object o) {
 		Edge other = (Edge)o;
-		return (src.equals(other.getSrc())
+		return (src.equals(other.getSource())
 			&& dest.equals(other.getDest())
 			&& weight == other.getWeight());
+	}
+	public boolean equalsIgnoreWeight(Object o) {
+		Edge other = (Edge)o;
+		return (src.equals(other.getSource())
+				&& dest.equals(other.getDest()));
 	}
 
 	public int compareTo(Object o) {
 		Edge other = (Edge)o;
-		//this comparison doesn't actually mean anything. Oh well.
-		return other.equals(this) ? 0 : 1;
+		//assuming this is for edge weight comparison
+		//there may be a constraint s.t. (x.compareTo(y) == 0) <=> x.equals(y)
+		//TODO: check and fix if we have to obey that.
+		return (weight - other.getWeight());
 	}
 }
