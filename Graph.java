@@ -11,16 +11,26 @@ import java.util.Set;
 class Graph {
 	Set<Vertex> vertices;
 	Set<Edge> edges;
+	Map<Vertex, Set<Vertex>> components;
 	
 	int negativeValues; //a semaphore to control the use of dijkstra's for sssp
+	int numComponents; //keep track of the number of connected components
 
 	public Graph() {
 		vertices = new HashSet<Vertex>();
 		edges = new HashSet<Edge>();
+		components = new HashMap<Vertex, Set<Vertex>>();
 	}
-	public Graph(Set<Vertex> v, Set<Edge> e) {
-		vertices = v;
-		edges = e;
+	public Graph(Set<Vertex> vertices, Set<Edge> edges) {
+		this.vertices = vertices;
+		this.edges = edges;
+		
+		for(Vertex v : vertices) {
+			add(v);
+		}
+		for(Edge e : edges) {
+			add(e);
+		}
 	}
 
 	/* basic graph functionality */
@@ -33,20 +43,91 @@ class Graph {
 	}
 
 	public boolean adjacent(Vertex v1, Vertex v2) {
-		return edges.contains(new Edge(v1,v2,0));
+		//this is pretty terrible. 
+		//TODO: make it better.
+		//maybe check just edges leaving vertices in the current component?
+		for(Edge e : edges) {
+			if(e.getSource().equals(v1) && e.getDest().equals(v2))
+				return true;
+		}
+		return false;
+	}
+	
+	public boolean reachable(Vertex v1, Vertex v2) {
+		return components.get(v1).equals(components.get(v2));
+	}
+	
+	public Set<Vertex> component(Vertex v) {
+		return components.get(v);
+	}
+	public Set<Set<Vertex>> getComponents() {
+		Set<Set<Vertex>> allComponents = new HashSet<Set<Vertex>>();
+		allComponents.addAll(components.values());
+		return allComponents;
+	}
+	
+	public boolean isConnected() {
+		return (numComponents == 1);
 	}
 	
 	public boolean add(Vertex v) {		
-		return vertices.add(v);
+		boolean success = vertices.add(v);
+		//a new vertex has no edges and cannot be in an existing component.
+		if(success) {
+			Set<Vertex> component = new HashSet<Vertex>();
+			component.add(v);
+			components.put(v, component);
+			numComponents++;
+		}
+		return success;
 	}
+	
 	public boolean remove(Vertex v) {
-		return vertices.remove(v);
+		Set<Edge> outgoing = outgoingEdges(v);
+		Set<Edge> incoming = incomingEdges(v);
+
+		//removing edges will update the number of components as necessary
+		for(Edge e : outgoing) {
+			remove(e);
+		}
+		for(Edge e : incoming) {
+			remove(e);
+		}
+		
+		//remove the component now containing only v
+		numComponents--;
+		components.remove(v);
+		vertices.remove(v);
+		
+		return true;
 	}
+	
 	public boolean add(Edge e) {
-		return edges.add(e);
+		boolean success = edges.add(e);
+		if(success) {
+			Vertex v1 = e.getSource();
+			Vertex v2 = e.getDest();
+			Set<Vertex> v1comp = components.get(v1);
+			Set<Vertex> v2comp = components.get(v2);
+
+			//check if this edge joins two components and merge them if it does
+			if(v1comp != v2comp) {
+				for(Vertex v : v2comp) {
+					v1comp.add(v);
+					components.put(v, v1comp);
+				}
+				
+				numComponents--;
+			}
+		}
+		
+		return success;
 	}
+	
 	public boolean remove(Edge e) {
 		return edges.remove(e);
+		//TODO: check if numComponents changes
+		//and update the components if it does.
 	}
 	
 	/* neighbors
@@ -81,12 +162,20 @@ class Graph {
 	
 	/* incomingEdges
 	 * get a set of the edges whose dest is the given vertex
-	 * runtime O(|E|)
+	 * runtime O(|E|) 
 	 * @param v : the vertex to consider
 	 * @return the set of edges whose dest is v
 	 */
 	public Set<Edge> incomingEdges(Vertex v) {
+		Set<Edge> componentEdges = new HashSet<Edge>();
 		Set<Edge> incoming = new HashSet<Edge>();
+		
+		Set<Vertex> component = components.get(v);
+		for(Vertex c : component) {
+			for(Edge e : outgoingEdges(c)) {
+				componentEdges.add(e);
+			}
+		}
 		for(Edge e : edges) {
 			if(e.getDest().equals(v)) incoming.add(e);
 		}
@@ -106,6 +195,8 @@ class Graph {
 	 * @return a list of edges that corresponds to a path from start to end
 	 */
 	public List<Edge> shortestPath(Vertex start, Vertex end) {
+		if(!reachable(start,end)) return null;
+		
 		PriorityQueue<Edge> p = new PriorityQueue<Edge>();
 		//add the initial set of edges to the priority queue
 		for(Edge e : outgoingEdges(start)) {
@@ -138,5 +229,15 @@ class Graph {
 		}
 		
 		return paths.get(end);
+	}
+	
+	public boolean isEulerianCycle() {
+		if(edges.size() % 2 != 0) return false;
+		if(numComponents != 1) return false;
+		for(Vertex v : vertices) {
+			if(neighbors(v).size() % 2 != 0) return false;
+		}
+		
+		throw new RuntimeException("Unimplemented");
 	}
 }
