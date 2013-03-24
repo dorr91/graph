@@ -7,8 +7,6 @@ class Graph {
 	private Set<Vertex> vertices;
 	private Set<Edge> edges;
 	
-	int negativeValues = 0; //a semaphore to control use of dijkstra's for SSSP
-
 	public Graph() {
 		vertices = new HashSet<Vertex>();
 		edges = new HashSet<Edge>();
@@ -16,12 +14,6 @@ class Graph {
 	public Graph(Set<Vertex> vertices, Set<Edge> edges) {
 		this.vertices = vertices;
 		this.edges = edges;
-		
-		for(Edge e : edges) {
-		    if(e.getWeight() < 0) {
-		        negativeValues++;
-		    }
-		}
 	}
 	
     public boolean add(Vertex v) {
@@ -29,6 +21,12 @@ class Graph {
     }
 
     public boolean remove(Vertex v) {
+        for(Edge e : outgoingEdges(v)) {
+            remove(e);
+        }
+        for(Edge e : incomingEdges(v)) {
+            remove(e);
+        }
         return vertices.remove(v);
     }
 
@@ -60,17 +58,11 @@ class Graph {
 	public boolean adjacent(Vertex v1, Vertex v2) {
 		//this is pretty terrible. 
 		//TODO: make it better.
-		//maybe check just edges leaving vertices in the current component?
-		for(Edge e : edges) {
-			if(e.getSource().equals(v1) && e.getDest().equals(v2))
-				return true;
-		}
+	    for(Vertex v : neighbors(v1)) {
+	        if(v.equals(v2)) return true;
+	    }
+	    
 		return false;
-	}
-	
-	public boolean reachable(Vertex src, Vertex dest) {
-		//TODO: implement
-	    return false;
 	}
 	
 	/* neighbors

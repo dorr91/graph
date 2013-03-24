@@ -2,13 +2,35 @@ package graph;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Set;
+
 import graph.Graph;
 
 public class GraphUtils {
-/* useful graph algorithms */
+    
+    public static boolean reachable(Graph g, Vertex src, Vertex dest) {
+        if(src.equals(dest)) return true;
+        
+        //DFS for dest from src
+        Set<Vertex> visited = new HashSet<Vertex>();
+        visited.add(src);
+        
+        return reachable(g,src,dest,visited);
+    }
+    private static boolean reachable(Graph g, Vertex src, Vertex dest, Set<Vertex> visited) {
+        for(Vertex v : g.neighbors(src)) {
+            if(src.equals(dest)) return true;
+            if(!visited.contains(v)) {
+                visited.add(v);
+                if(reachable(g,v,dest,visited)) return true;
+            }
+        }
+        return false;
+    }
     
     /* shortestPath
      * single-source shortest path; use dijkstra's if all >= 0 weight
@@ -20,7 +42,7 @@ public class GraphUtils {
      * @return a list of edges that corresponds to a path from start to end
      */
     public static List<Edge> shortestPath(Graph g, Vertex start, Vertex end) {
-        if(!g.reachable(start,end)) return null;
+        if(!reachable(g,start,end)) return null;
         
         PriorityQueue<Edge> p = new PriorityQueue<Edge>();
         //add the initial set of edges to the priority queue
